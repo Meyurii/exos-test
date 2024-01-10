@@ -1,5 +1,7 @@
 import tkinter as tk
 import random
+import pickle
+import winsound
 
 class Pion:
     def __init__(self, joueur, coord=None):
@@ -14,7 +16,11 @@ class Jeu:
         self.joueurs = ['Rouge', 'Bleu']
         self.joueur_actuel = random.choice(self.joueurs)
         self.pions = {'Rouge': Pion('Rouge', None), 'Bleu': Pion('Bleu', None)}
+        self.animation_speed = 50  # Speed of animation in milliseconds
+        self.sound_file = 'move_sound.wav'
         self.creer_interface()
+        self.ancienne_ligne = None
+        self.ancienne_colonne = None
 
     def creer_interface(self):
         self.root = tk.Tk()
@@ -24,6 +30,11 @@ class Jeu:
         self.canvas.pack()
 
         self.canvas.bind("<Button-1>", self.gerer_clic)
+        save_button = tk.Button(self.root, text="Save Game", command=self.save_game)
+        save_button.pack(side=tk.LEFT, padx=10)
+        
+        load_button = tk.Button(self.root, text="Load Game", command=self.load_game)
+        load_button.pack(side=tk.LEFT, padx=10)
 
         self.afficher_plateau()
 
@@ -62,6 +73,8 @@ class Jeu:
         colonne = event.x // 60
         ligne = event.y // 60
 
+        ancienne_ligne, ancienne_colonne = None, None  # Initialize with default values
+
         if self.plateau[ligne][colonne] == '' and self.deplacement_valide(self.pions[self.joueur_actuel].coord, (ligne, colonne)):
             # Check if the pawn is moving from a square
             if self.pions[self.joueur_actuel].coord:
@@ -73,6 +86,8 @@ class Jeu:
             self.plateau[ligne][colonne] = self.joueur_actuel
             self.pions[self.joueur_actuel].coord = (ligne, colonne)
 
+            self.animate_move(ancienne_ligne, ancienne_colonne, ligne, colonne)
+
             if self.verifier_victoire():
                 self.afficher_resultat()
             elif self.verifier_blocage():
@@ -80,6 +95,39 @@ class Jeu:
             else:
                 self.joueur_suivant()
                 self.afficher_plateau()
+
+    def animate_move(self, ancienne_ligne, ancienne_colonne, nouvelle_ligne, nouvelle_colonne):
+        if ancienne_ligne is not None and ancienne_colonne is not None:
+            self.move_sound()  # Play the sound
+            self.animate_piece(ancienne_ligne, ancienne_colonne, nouvelle_ligne, nouvelle_colonne)
+
+    def animate_piece(self, ancienne_ligne, ancienne_colonne, nouvelle_ligne, nouvelle_colonne):
+        x0, y0, x1, y1 = ancienne_colonne * 60, ancienne_ligne * 60, nouvelle_colonne * 60, nouvelle_ligne * 60
+        color = self.get_color(self.joueur_actuel)
+        
+        # Create a temporary oval representing the piece
+        temp_piece = self.canvas.create_oval(x0 + 10, y0 + 10, x1 - 10, y1 - 10, fill=color, outline=color)
+
+        # Schedule the update function with after() to move the piece smoothly
+        self.move_piece_smoothly(temp_piece, ancienne_ligne, ancienne_colonne, nouvelle_ligne, nouvelle_colonne)
+
+    def move_piece_smoothly(self, temp_piece, ancienne_ligne, ancienne_colonne, nouvelle_ligne, nouvelle_colonne):
+        x0, y0, x1, y1 = ancienne_colonne * 60, ancienne_ligne * 60, nouvelle_colonne * 60, nouvelle_ligne * 60
+        dx = (x1 - x0) / 10  # Adjust the number of steps as needed
+        dy = (y1 - y0) / 10
+
+        # Move the piece in small steps
+        for _ in range(10):
+            self.canvas.move(temp_piece, dx, dy)
+            self.root.update()
+            self.root.after(self.animation_speed)
+
+        # Delete the temporary piece
+        self.canvas.delete(temp_piece)
+
+    def move_sound(self):
+        # Play the sound using winsound
+        winsound.PlaySound(self.sound_file, winsound.SND_FILENAME)
 
     def afficher_cross(self, ligne, colonne, couleur):
         x0, y0, x1, y1 = colonne * 60, ligne * 60, (colonne + 1) * 60, (ligne + 1) * 60
@@ -153,6 +201,40 @@ class Jeu:
 
     def get_color(self, joueur):
         return "#FF0000" if joueur == 'Rouge' else "#0000FF"
+
+    def save_game(self):
+        game_data = {
+            'dimension': self.dimension,
+            'pions_aligner': self.pions_aligner,
+            'plateau': self.plateau,
+            'joueurs': self.joueurs,
+            'joueur_actuel': self.joueur_actuel,
+            'pions': {joueur: {'joueur': pion.joueur, 'coord': pion.coord} for joueur, pion in self.pions.items()}
+            # Add other game-related data as needed
+        }
+
+        with open('saved_game.txt', 'wb') as file:
+            pickle.dump(game_data, file)
+
+    def load_game(self):
+        try:
+            with open('saved_game.txt', 'rb') as file:
+                game_data = pickle.load(file)
+
+            self.dimension = game_data['dimension']
+            self.pions_aligner = game_data['pions_aligner']
+            self.plateau = game_data['plateau']
+            self.joueurs = game_data['joueurs']
+            self.joueur_actuel = game_data['joueur_actuel']
+
+            for joueur, pion_data in game_data['pions'].items():
+                self.pions[joueur] = Pion(pion_data['joueur'], pion_data['coord'])
+
+            # Restore other game-related data as needed
+
+            self.afficher_plateau()
+        except FileNotFoundError:
+            print("Pas de partie")
 
 if __name__ == "__main__":
     jeu = Jeu()
