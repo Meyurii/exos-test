@@ -38,10 +38,16 @@ class Jeu:
                 self.canvas.create_rectangle(x0, y0, x1, y1, outline="black")
 
                 if self.plateau[i][j] == 'Rouge':
-                    self.canvas.create_oval(x0 + 10, y0 + 10, x1 - 10, y1 - 10, fill="red", outline="red")
+                    if self.pions['Rouge'].coord == (i, j):
+                        self.canvas.create_oval(x0 + 10, y0 + 10, x1 - 10, y1 - 10, fill="#FF0000", outline="#FF0000")
+                    else:
+                        self.afficher_cross(i, j, "#FF0000")
 
                 elif self.plateau[i][j] == 'Bleu':
-                    self.canvas.create_oval(x0 + 10, y0 + 10, x1 - 10, y1 - 10, fill="blue", outline="blue")
+                    if self.pions['Bleu'].coord == (i, j):
+                        self.canvas.create_oval(x0 + 10, y0 + 10, x1 - 10, y1 - 10, fill="#0000FF", outline="#0000FF")
+                    else:
+                        self.afficher_cross(i, j, "#0000FF")
 
         self.root.title(f"Tour de {self.joueur_actuel}")
         self.previsualiser_coups()
@@ -60,7 +66,9 @@ class Jeu:
             # Check if the pawn is moving from a square
             if self.pions[self.joueur_actuel].coord:
                 ancienne_ligne, ancienne_colonne = self.pions[self.joueur_actuel].coord
-                self.plateau[ancienne_ligne][ancienne_colonne] = self.joueur_actuel  # Leave a cross
+
+                # Transform the pawn into a cross in the previous position
+                self.afficher_cross(ancienne_ligne, ancienne_colonne, self.get_color(self.joueur_actuel))
 
             self.plateau[ligne][colonne] = self.joueur_actuel
             self.pions[self.joueur_actuel].coord = (ligne, colonne)
@@ -72,6 +80,11 @@ class Jeu:
             else:
                 self.joueur_suivant()
                 self.afficher_plateau()
+
+    def afficher_cross(self, ligne, colonne, couleur):
+        x0, y0, x1, y1 = colonne * 60, ligne * 60, (colonne + 1) * 60, (ligne + 1) * 60
+        self.canvas.create_line(x0, y0, x1, y1, fill=couleur, width=2)
+        self.canvas.create_line(x0, y1, x1, y0, fill=couleur, width=2)
 
     def verifier_blocage(self):
         for i in range(self.dimension):
@@ -96,7 +109,7 @@ class Jeu:
         dx = abs(nouvelle_coord[0] - coord_actuelle[0])
         dy = abs(nouvelle_coord[1] - coord_actuelle[1])
 
-        return (dx == 1 and dy == 2) or (dx == 2 and dy == 1)
+        return (dx == 1 and dy == 2) or (dx == 2 and dy == 1) and self.plateau[nouvelle_coord[0]][nouvelle_coord[1]] == ''
 
     def verifier_victoire(self):
         ligne, colonne = self.pions[self.joueur_actuel].coord
@@ -137,6 +150,9 @@ class Jeu:
                     if self.deplacement_valide(coord, new_coord) and self.plateau[new_coord[0]][new_coord[1]] == '':
                         moves.append(new_coord)
         return moves
+
+    def get_color(self, joueur):
+        return "#FF0000" if joueur == 'Rouge' else "#0000FF"
 
 if __name__ == "__main__":
     jeu = Jeu()
