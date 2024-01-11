@@ -9,7 +9,7 @@ class Pion:
         self.coord = coord
 
 class Jeu:
-    def __init__(self, dimension=10, pions_aligner=5):
+    def __init__(self, dimension=8, pions_aligner=5):
         self.dimension = dimension
         self.pions_aligner = pions_aligner
         self.plateau = [['' for _ in range(dimension)] for _ in range(dimension)]
@@ -32,9 +32,12 @@ class Jeu:
         self.canvas.bind("<Button-1>", self.gerer_clic)
         save_button = tk.Button(self.root, text="Save Game", command=self.save_game)
         save_button.pack(side=tk.LEFT, padx=10)
-        
+
         load_button = tk.Button(self.root, text="Load Game", command=self.load_game)
         load_button.pack(side=tk.LEFT, padx=10)
+
+        new_game_button = tk.Button(self.root, text="Nouvelle Partie", command=self.nouvelle_partie)
+        new_game_button.pack(side=tk.LEFT, padx=10)
 
         self.afficher_plateau()
 
@@ -235,6 +238,17 @@ class Jeu:
             self.afficher_plateau()
         except FileNotFoundError:
             print("Pas de partie")
+
+    def nouvelle_partie(self):
+        self.dimension = 8
+        self.pions_aligner = 5
+        self.plateau = [['' for _ in range(self.dimension)] for _ in range(self.dimension)]
+        self.joueur_actuel = random.choice(self.joueurs)
+        self.pions = {'Rouge': Pion('Rouge', None), 'Bleu': Pion('Bleu', None)}
+        self.ancienne_ligne = None
+        self.ancienne_colonne = None
+        self.afficher_plateau()
+
 
 if __name__ == "__main__":
     jeu = Jeu()
