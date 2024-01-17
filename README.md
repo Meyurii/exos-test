@@ -252,4 +252,4 @@ class Jeu:
 
 if __name__ == "__main__":
     jeu = Jeu()
-
+    
